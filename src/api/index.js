@@ -10,10 +10,14 @@ export async function fetchDataFromAPI(url = '') {
   return res.json();
 }
 
-export async function getTotalNumbers() {
-  return await fetchDataFromAPI('/total');
+export async function getTotalNumbers(country = '') {
+  return await fetchDataFromAPI('/total' + '?country=' + country);
 }
 
 export async function getAllCountriesStats() {
   return await fetchDataFromAPI('/stats');
+}
+
+export async function getTargetCountryStats(country = '') {
+  return await fetchDataFromAPI('/stats?country=' + country);
 }
