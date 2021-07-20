@@ -29,7 +29,7 @@
     <div class="control has-icons-right">
       <input
         v-model="currentCountry"
-        @input="getCountryStats"
+        @input="getTotalStats"
         class="input is-medium "
         type="text"
         placeholder="Country name"
@@ -39,10 +39,61 @@
         <i class="fas fa-search"></i>
       </span>
     </div>
-    <div class="location is-align-self-flex-start">
-      <h3 class="subtitle is-3 has-background-link-light pl-3 pr-3 mt-2">
+    <div class="location is-align-self-flex-start is-flex">
+      <h3
+        class="subtitle is-3 has-background-link-light pl-3 pr-3 mt-2 location-text"
+      >
         Location: {{ totalNumbers.location }}
       </h3>
+      <button
+        @click="getCountryStats"
+        class="button is-info is-outlined mt-2 ml-2"
+      >
+        Get more stats
+      </button>
+      <div
+        v-if="isVisibleDropdown"
+        class="dropdown mt-2 ml-2"
+        :class="{ 'is-active': isDropdownActive }"
+      >
+        <div class="dropdown-trigger">
+          <button
+            @click="isDropdownActive = !isDropdownActive"
+            class="button"
+            aria-haspopup="true"
+            aria-controls="dropdown-menu"
+          >
+            <span>Region</span>
+            <span class="icon is-small">
+              <i class="fas fa-angle-down" aria-hidden="true"></i>
+            </span>
+          </button>
+        </div>
+        <div class="dropdown-menu" id="dropdown-menu" role="menu">
+          <div class="dropdown-content m-0">
+            <div class="dropdown-item">
+              <div class="control has-icons-right">
+                <input
+                  class="input is-small"
+                  type="text"
+                  placeholder="Region name"
+                />
+                <span class="icon is-right">
+                  <i class="fas fa-search"></i>
+                </span>
+              </div>
+            </div>
+            <a
+              v-for="region in regions"
+              :key="region.keyId"
+              href="#"
+              class="dropdown-item"
+            >
+              {{ region }}
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
   <section class="total-stats columns is-desktop is-vcentered">
@@ -91,45 +142,49 @@
 </template>
 
 <script>
-import { getTotalNumbers } from './api';
-import anime from 'animejs/lib/anime.es.js';
+import { getTotalNumbers, getTargetCountryStats } from './api';
+// import anime from 'animejs/lib/anime.es.js';
 import _ from 'lodash';
 export default {
   name: 'App',
   data() {
     return {
-      topMovieList: [],
       totalNumbers: {},
       currentCountry: '',
-      selectedCountryStats: null,
+      selectedCountryStats: [],
       lastChecked: null,
+      isDropdownActive: false,
     };
   },
   methods: {
-    getCountryStats: _.debounce(function() {
+    getTotalStats: _.debounce(function() {
       getTotalNumbers(this.currentCountry).then((res) => {
-        anime
-          .timeline({
-            duration: 600,
-          })
-          .add({
-            targets: '.total-stats-card',
-            scale: 1.2,
-          })
-          .add({
-            targets: '.total-stats-card',
-            scale: 1,
-          });
         this.totalNumbers = res.data;
         this.lastChecked = res.data.lastChecked;
       });
     }, 500),
+    getCountryStats: function() {
+      getTargetCountryStats(this.currentCountry).then((res) => {
+        this.selectedCountryStats = res.data.covid19Stats;
+        this.lastChecked = res.data.lastChecked;
+      });
+    },
   },
   mounted() {
     getTotalNumbers().then((res) => {
       this.totalNumbers = res.data;
       this.lastChecked = res.data.lastChecked;
     });
+  },
+  computed: {
+    regions() {
+      return this.selectedCountryStats.map((el) => el.province).slice(0, 6);
+    },
+    isVisibleDropdown() {
+      return (
+        this.totalNumbers.location && this.totalNumbers.location !== 'Global'
+      );
+    },
   },
 };
 </script>
@@ -160,5 +215,9 @@ h3 {
 
 .search-bar-container {
   margin: 0 auto;
+}
+
+.location-text {
+  border-radius: 4px;
 }
 </style>
