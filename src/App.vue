@@ -43,17 +43,12 @@
       <h3
         class="subtitle is-3 has-background-link-light pl-3 pr-3 mt-2 location-text"
       >
-        Location: {{ totalNumbers.location }}
+        Location: {{ location }}
       </h3>
-      <button
-        @click="getCountryStats"
-        class="button is-info is-outlined mt-2 ml-2"
-      >
-        Get more stats
-      </button>
       <div
         v-if="isVisibleDropdown"
         class="dropdown mt-2 ml-2"
+        ref="dropdown-ref"
         :class="{ 'is-active': isDropdownActive }"
       >
         <div class="dropdown-trigger">
@@ -74,6 +69,7 @@
             <div class="dropdown-item">
               <div class="control has-icons-right">
                 <input
+                  v-model="currentRegion"
                   class="input is-small"
                   type="text"
                   placeholder="Region name"
@@ -83,8 +79,12 @@
                 </span>
               </div>
             </div>
+            <span v-show="isRegionsLoading" class="dropdown-item">
+              Loading...
+            </span>
             <a
-              v-for="region in regions"
+              @click="selectedRegion = region"
+              v-for="region in filteredRegions"
               :key="region.keyId"
               href="#"
               class="dropdown-item"
@@ -143,7 +143,6 @@
 
 <script>
 import { getTotalNumbers, getTargetCountryStats } from './api';
-// import anime from 'animejs/lib/anime.es.js';
 import _ from 'lodash';
 export default {
   name: 'App',
@@ -151,6 +150,9 @@ export default {
     return {
       totalNumbers: {},
       currentCountry: '',
+      currentRegion: '',
+      selectedRegion: '',
+      location: '',
       selectedCountryStats: [],
       lastChecked: null,
       isDropdownActive: false,
@@ -161,6 +163,7 @@ export default {
       getTotalNumbers(this.currentCountry).then((res) => {
         this.totalNumbers = res.data;
         this.lastChecked = res.data.lastChecked;
+        this.location = res.data.location;
       });
     }, 500),
     getCountryStats: function() {
@@ -174,6 +177,7 @@ export default {
     getTotalNumbers().then((res) => {
       this.totalNumbers = res.data;
       this.lastChecked = res.data.lastChecked;
+      this.location = res.data.location;
     });
   },
   computed: {
@@ -182,8 +186,32 @@ export default {
     },
     isVisibleDropdown() {
       return (
-        this.totalNumbers.location && this.totalNumbers.location !== 'Global'
+        this.location && this.location !== 'Global'
       );
+    },
+    isRegionsLoading() {
+      return this.selectedCountryStats.length === 0;
+    },
+    filteredRegions() {
+      return this.regions.filter(
+        (region) => region.indexOf(this.currentRegion) > -1
+      );
+    },
+    selectedRegionStats() {
+      return this.selectedCountryStats.find(
+        (region) => region.province === this.selectedRegion
+      );
+    },
+  },
+  watch: {
+    isDropdownActive() {
+      if (this.isVisibleDropdown) {
+        this.getCountryStats();
+      }
+    },
+    selectedRegion() {
+      this.totalNumbers = this.selectedRegionStats;
+      console.log(this.totalNumbers);
     },
   },
 };
