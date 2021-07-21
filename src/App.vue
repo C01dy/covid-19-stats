@@ -43,7 +43,8 @@
       <h3
         class="subtitle is-3 has-background-link-light pl-3 pr-3 mt-2 location-text"
       >
-        Location: {{ location }}
+        Location: {{ location
+        }}<span v-if="selectedRegion">, {{ selectedRegion }}</span>
       </h3>
       <div
         v-if="isVisibleDropdown"
@@ -65,7 +66,7 @@
           </button>
         </div>
         <div class="dropdown-menu" id="dropdown-menu" role="menu">
-          <div class="dropdown-content m-0">
+          <div class="dropdown-content m-0 dropdown-regions-list">
             <div class="dropdown-item">
               <div class="control has-icons-right">
                 <input
@@ -164,6 +165,7 @@ export default {
         this.totalNumbers = res.data;
         this.lastChecked = res.data.lastChecked;
         this.location = res.data.location;
+        this.selectedRegion = '';
       });
     }, 500),
     getCountryStats: function() {
@@ -182,12 +184,10 @@ export default {
   },
   computed: {
     regions() {
-      return this.selectedCountryStats.map((el) => el.province).slice(0, 6);
+      return this.selectedCountryStats.map((el) => el.province)
     },
     isVisibleDropdown() {
-      return (
-        this.location && this.location !== 'Global'
-      );
+      return this.location && this.location !== 'Global';
     },
     isRegionsLoading() {
       return this.selectedCountryStats.length === 0;
@@ -211,7 +211,6 @@ export default {
     },
     selectedRegion() {
       this.totalNumbers = this.selectedRegionStats;
-      console.log(this.totalNumbers);
     },
   },
 };
@@ -247,5 +246,10 @@ h3 {
 
 .location-text {
   border-radius: 4px;
+}
+
+.dropdown-regions-list {
+  overflow-y: scroll;
+  max-height: 320px;
 }
 </style>
