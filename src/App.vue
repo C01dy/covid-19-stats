@@ -13,7 +13,7 @@
       <span
         class="last last-reported has-background-info-light pl-3 pr-3 pt-1 pb-1 m-2 is-underlined"
       >
-        Last reported: {{ totalNumbers.lastReported }}
+        Last reported: {{ totalNumbers.lastReported || '-' }}
       </span>
       <span
         class="last last-checked has-background-info-light pl-3 pr-3 pt-1 pb-1 m-2 is-underlined"
@@ -22,6 +22,7 @@
       </span>
     </span>
   </header>
+
   <section
     class="search-bar-container is-flex is-flex-direction-column is-align-items-center mt-5"
     style="width: 800px"
@@ -43,120 +44,62 @@
       <h3
         class="subtitle is-3 has-background-link-light pl-3 pr-3 mt-2 location-text"
       >
-        Location: {{ location
-        }}<span v-if="selectedRegion">, {{ selectedRegion }}</span>
+        Location: {{ location }}
       </h3>
-      <div
-        v-if="isVisibleDropdown"
-        class="dropdown mt-2 ml-2"
-        ref="dropdown-ref"
-        :class="{ 'is-active': isDropdownActive }"
-      >
-        <div class="dropdown-trigger">
-          <button
-            @click="isDropdownActive = !isDropdownActive"
-            class="button"
-            aria-haspopup="true"
-            aria-controls="dropdown-menu"
-          >
-            <span>Region</span>
-            <span class="icon is-small">
-              <i class="fas fa-angle-down" aria-hidden="true"></i>
-            </span>
-          </button>
-        </div>
-        <div class="dropdown-menu" id="dropdown-menu" role="menu">
-          <div class="dropdown-content m-0 dropdown-regions-list">
-            <div class="dropdown-item">
-              <div class="control has-icons-right">
-                <input
-                  v-model="currentRegion"
-                  class="input is-small"
-                  type="text"
-                  placeholder="Region name"
-                />
-                <span class="icon is-right">
-                  <i class="fas fa-search"></i>
-                </span>
-              </div>
-            </div>
-            <span v-show="isRegionsLoading" class="dropdown-item">
-              Loading...
-            </span>
-            <a
-              @click="selectedRegion = region"
-              v-for="region in filteredRegions"
-              :key="region.keyId"
-              href="#"
-              class="dropdown-item"
-            >
-              {{ region }}
-            </a>
-          </div>
-        </div>
-      </div>
+      <template v-if="isVisibleDropdown">
+        <dropdown-with-input
+          @get-regions="getCountryStats"
+          @select-item="selectRegion"
+          :list="regions"
+          :selectedRegion="currentRegion"
+        />
+      </template>
     </div>
   </section>
+
   <section class="total-stats columns is-desktop is-vcentered">
-    <div class="total-stats__cases column">
-      <div class="card total-stats-card has-background-warning-dark">
-        <div
-          class="card-content is-flex is-flex-direction-column is-align-items-center"
-        >
-          <i class="fas fa-lungs-virus is-size-3 has-text-white mb-3"></i>
-          <h3 class="title is-3 has-text-white">Coronavirus Cases:</h3>
-          <h2 class="title is-2 has-text-white">
-            {{ totalNumbers.confirmed }}
-          </h2>
-        </div>
-      </div>
-    </div>
+    <stats-card
+      title="Coronavirus Cases"
+      icon="fa-lungs-virus"
+      background="has-background-warning-dark"
+      :stat="totalNumbers.confirmed"
+    />
 
-    <div class="total-stats__deaths column">
-      <div
-        class="card total-stats-card total-stats-card has-background-danger-dark"
-      >
-        <div
-          class="card-content is-flex is-flex-direction-column is-align-items-center"
-        >
-          <i class="fas fa-skull is-size-3 has-text-white mb-3"></i>
-          <h3 class="title is-3 has-text-white">Deaths:</h3>
-          <h2 class="title is-2 has-text-white">{{ totalNumbers.deaths }}</h2>
-        </div>
-      </div>
-    </div>
+    <stats-card
+      title="Deaths"
+      icon="fa-skull"
+      background="has-background-danger-dark"
+      :stat="totalNumbers.deaths"
+    />
 
-    <div class="total-stats__recovered column">
-      <div class="card total-stats-card has-background-success">
-        <div
-          class="card-content is-flex is-flex-direction-column is-align-items-center"
-        >
-          <i class="fas fa-star-of-life is-size-3 has-text-white mb-3"></i>
-          <h3 class="title is-3 has-text-white">Recovered:</h3>
-          <h2 class="title is-2 has-text-white">
-            {{ totalNumbers.recovered || '-' }}
-          </h2>
-        </div>
-      </div>
-    </div>
+    <stats-card
+      title="Recovered"
+      icon="fa-star-of-life"
+      background="has-background-success"
+      :stat="totalNumbers.recovered"
+    />
   </section>
 </template>
 
 <script>
 import { getTotalNumbers, getTargetCountryStats } from './api';
+import StatsCard from './components/StatsCard';
+import DropdownWithInput from './components/DropdownWithInput';
 import _ from 'lodash';
 export default {
   name: 'App',
+  components: {
+    StatsCard,
+    DropdownWithInput,
+  },
   data() {
     return {
       totalNumbers: {},
       currentCountry: '',
       currentRegion: '',
-      selectedRegion: '',
       location: '',
       selectedCountryStats: [],
       lastChecked: null,
-      isDropdownActive: false,
     };
   },
   methods: {
@@ -165,7 +108,6 @@ export default {
         this.totalNumbers = res.data;
         this.lastChecked = res.data.lastChecked;
         this.location = res.data.location;
-        this.selectedRegion = '';
       });
     }, 500),
     getCountryStats: function() {
@@ -173,6 +115,9 @@ export default {
         this.selectedCountryStats = res.data.covid19Stats;
         this.lastChecked = res.data.lastChecked;
       });
+    },
+    selectRegion(region) {
+      this.currentRegion = region;
     },
   },
   mounted() {
@@ -182,35 +127,26 @@ export default {
       this.location = res.data.location;
     });
   },
-  computed: {
-    regions() {
-      return this.selectedCountryStats.map((el) => el.province)
+  watch: {
+    currentRegion() {
+      this.totalNumbers = {
+        confirmed: this.selectedRegion.confirmed,
+        deaths: this.selectedRegion.deaths,
+        recovered: this.selectedRegion.recovered,
+      };
     },
+  },
+  computed: {
     isVisibleDropdown() {
       return this.location && this.location !== 'Global';
     },
-    isRegionsLoading() {
-      return this.selectedCountryStats.length === 0;
-    },
-    filteredRegions() {
-      return this.regions.filter(
-        (region) => region.indexOf(this.currentRegion) > -1
-      );
-    },
-    selectedRegionStats() {
-      return this.selectedCountryStats.find(
-        (region) => region.province === this.selectedRegion
-      );
-    },
-  },
-  watch: {
-    isDropdownActive() {
-      if (this.isVisibleDropdown) {
-        this.getCountryStats();
-      }
+    regions() {
+      return this.selectedCountryStats.map((el) => el.province);
     },
     selectedRegion() {
-      this.totalNumbers = this.selectedRegionStats;
+      return this.selectedCountryStats.find(
+        (el) => el.province === this.currentRegion
+      );
     },
   },
 };
